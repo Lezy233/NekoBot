@@ -5,14 +5,18 @@ from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
 from . import llm, store
 from .config import settings
+from .overrides import get_override
 from .persona import load_persona
 
 matcher = on_message()
 
 
 def build_messages(session_key: str, current_message: str) -> list[dict[str, str]]:
-    """组装人格、滑动历史窗口和当前用户消息。"""
+    """组装人格、会话级注入、滑动历史窗口和当前用户消息。"""
     messages: list[dict[str, str]] = [{"role": "system", "content": load_persona()}]
+    override = get_override(session_key)
+    if override:
+        messages.append({"role": "system", "content": override})
     history = store.get_recent(session_key, settings.history_limit + 1)
     # 事件处理器先持久化当前用户消息；它已经在 history 中，因此不要再次加入。
     if history and history[-1]["role"] == "user" and history[-1]["content"] == current_message:
@@ -41,4 +45,3 @@ async def handle_private_message(bot: Bot, event: MessageEvent) -> None:
     response = await llm.chat(messages)
     store.append(session_key, "assistant", response)
     await matcher.finish(response)
-

@@ -19,7 +19,7 @@
 ## 图片识别
 
 - [ ] 支持接收并识别用户发送的图片：从 OneBot 消息中提取 `image` 段（NapCat 提供的 url/file），下载后提交视觉模型，识别结果以文本形式注入对话
-- [ ] 选定视觉模型：DeepSeek API 目前仅有 deepseek-chat / deepseek-reasoner，均不支持图像输入，需接入支持视觉的模型（评估其他厂商 API 或等待 DeepSeek 开放视觉模型）
+- [ ] 选定视觉模型：使用 DeepSeek API 的多模态模型 `deepseek-v4-flash-vision-exp`（实验性模型，文本能力与 deepseek-v4-flash 持平，支持 base64 内联 / URL / Files API 三种图片传入方式，单张图片最多 384 tokens，价格与 deepseek-v4-flash 一致）
 - [ ] 历史存储约定：会话历史中的图片以占位符文本存储（如 `[图片：一句话描述]`），避免重复上传、控制 token 与成本
 - [ ] 与现有表情包功能区分：识别是输入侧（看懂用户发的图），表情标签是输出侧（角色发表情包），两者不冲突，但共享图片下载等基础设施
 - [ ] 新增配置项（如识别开关、模型、单消息最大图片数、图片尺寸上限），在 `plugins/chat/config.py` 与 `.env` 示例中体现

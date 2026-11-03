@@ -3,17 +3,23 @@
 
 ```text
 项目根/
-├── .env                    # DEEPSEEK_API_KEY
+├── .env                        # DEEPSEEK_API_KEY
 ├── plugins/
 │   └── chat/
-│       ├── __init__.py     # 展示层：事件处理
-│       ├── llm.py          # 获取层：异步调 DeepSeek
-│       ├── store.py        # 存储层：SQLite 历史
-│       ├── persona.py      # 人格加载
-│       └── config.py       # 配置读取
+│       ├── __init__.py         # 展示层：事件处理、消息组装
+│       ├── llm.py              # 获取层：异步调 DeepSeek
+│       ├── store.py            # 存储层：SQLite 历史
+│       ├── persona.py          # 人格加载
+│       ├── overrides.py        # 按会话注入特殊身份/情感
+│       ├── sticker.py          # 表情标签解析、表情列表注入
+│       └── config.py           # 配置读取
 ├── persona/
-│   └── default.md          # 人格文件
-└── data/                   # chat.db
+│   ├── default.local.md        # 人格文件（gitignored）
+│   ├── default.example.md      # 人格模板
+│   ├── overrides.local.toml    # 特殊身份/情感配置（gitignored）
+│   └── overrides.example.toml  # overrides 模板
+├── stickers/                   # 表情包目录，支持子目录分类与软链接
+└── data/                       # chat.db
 ```
 
 ## 如何开始

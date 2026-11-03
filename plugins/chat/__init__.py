@@ -3,7 +3,7 @@
 from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
-from . import llm, store
+from . import llm, sticker, store
 from .config import settings
 from .overrides import get_override
 from .persona import load_persona
@@ -17,6 +17,9 @@ def build_messages(session_key: str, current_message: str) -> list[dict[str, str
     override = get_override(session_key)
     if override:
         messages.append({"role": "system", "content": override})
+    sticker_prompt = sticker.available_prompt()
+    if sticker_prompt:
+        messages.append({"role": "system", "content": sticker_prompt})
     history = store.get_recent(session_key, settings.history_limit + 1)
     # 事件处理器先持久化当前用户消息；它已经在 history 中，因此不要再次加入。
     if history and history[-1]["role"] == "user" and history[-1]["content"] == current_message:
@@ -44,4 +47,5 @@ async def handle_private_message(bot: Bot, event: MessageEvent) -> None:
     messages = build_messages(session_key, user_message)
     response = await llm.chat(messages)
     store.append(session_key, "assistant", response)
-    await matcher.finish(response)
+    await matcher.finish(sticker.parse(response))
+

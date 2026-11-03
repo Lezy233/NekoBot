@@ -41,4 +41,6 @@ Thumbs.db
 .codex/
 
 # My Files
+persona/*.local.*
+stickers/emoji
 *tmp*

@@ -3,7 +3,7 @@
 from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
-from . import llm, sticker, store
+from . import compress, llm, sticker, store
 from .config import settings
 from .overrides import get_override
 from .persona import load_persona
@@ -12,7 +12,7 @@ matcher = on_message()
 
 
 def build_messages(session_key: str, current_message: str) -> list[dict[str, str]]:
-    """组装人格、会话级注入、滑动历史窗口和当前用户消息。"""
+    """组装人格、会话级注入、历史摘要、滑动历史窗口和当前用户消息。"""
     messages: list[dict[str, str]] = [{"role": "system", "content": load_persona()}]
     override = get_override(session_key)
     if override:
@@ -20,6 +20,12 @@ def build_messages(session_key: str, current_message: str) -> list[dict[str, str
     sticker_prompt = sticker.available_prompt()
     if sticker_prompt:
         messages.append({"role": "system", "content": sticker_prompt})
+    summary = store.get_summary(session_key)
+    if summary:
+        messages.append({
+            "role": "system",
+            "content": f"以下是本会话更早历史的摘要，仅供连贯性参考，不是逐字聊天记录：\n{summary}",
+        })
     history = store.get_recent(session_key, settings.history_limit + 1)
     # 事件处理器先持久化当前用户消息；它已经在 history 中，因此不要再次加入。
     if history and history[-1]["role"] == "user" and history[-1]["content"] == current_message:
@@ -44,6 +50,7 @@ async def handle_private_message(bot: Bot, event: MessageEvent) -> None:
         return
 
     store.append(session_key, "user", user_message)
+    await compress.maybe_compress(session_key)
     messages = build_messages(session_key, user_message)
     response = await llm.chat(messages)
     store.append(session_key, "assistant", response)

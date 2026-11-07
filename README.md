@@ -3,7 +3,7 @@
 
 ```text
 项目根/
-├── .env                        # DEEPSEEK_API_KEY
+├── .env                        # CHAT_API_DEEPSEEK / SUMMARY_API_DEEPSEEK
 ├── plugins/
 │   └── chat/
 │       ├── __init__.py         # 展示层：事件处理、消息组装
@@ -12,6 +12,7 @@
 │       ├── persona.py          # 人格加载
 │       ├── overrides.py        # 按会话注入特殊身份/情感
 │       ├── sticker.py          # 表情标签解析、表情列表注入
+│       ├── compress.py         # 上下文压缩：窗口外历史压缩为摘要
 │       └── config.py           # 配置读取
 ├── persona/
 │   ├── default.local.md        # 人格文件（gitignored）

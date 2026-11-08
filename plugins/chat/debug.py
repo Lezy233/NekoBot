@@ -68,6 +68,14 @@ async def cmd_help(session_key: str, arg: str) -> str:
     return "可用指令：" + "、".join(lines)
 
 
+@command("echo")
+async def cmd_echo(session_key: str, arg: str) -> Message | str:
+    """<echo> 文本 — 原样返回文本，走与 AI 回复相同的表情标签解析，用于测试格式转换。"""
+    if not arg.strip():
+        return "用法：<echo> 文本"
+    return sticker.parse(arg)
+
+
 @command("emoji")
 async def cmd_emoji(session_key: str, arg: str) -> Message | str:
     """<emoji> 名称 — 直接发送指定表情包（支持引号包裹或 目录/名称 形式）。

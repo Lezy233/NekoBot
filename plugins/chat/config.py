@@ -26,6 +26,11 @@ def _int_env(name: str, default: int) -> int:
         return default
 
 
+def _admin_users() -> frozenset[str]:
+    raw = os.getenv("CHAT_ADMIN_USERS", "")
+    return frozenset(item.strip() for item in raw.split(",") if item.strip())
+
+
 @dataclass(frozen=True)
 class Settings:
     chat_api: str
@@ -35,6 +40,7 @@ class Settings:
     temperature: float
     history_limit: int
     compress_threshold: int
+    admin_users: frozenset[str]
 
 
 settings = Settings(
@@ -45,5 +51,6 @@ settings = Settings(
     temperature=_float_env("DEEPSEEK_TEMPERATURE", 0.9),
     history_limit=_int_env("CHAT_HISTORY_LIMIT", 30),
     compress_threshold=_int_env("CHAT_COMPRESS_THRESHOLD", 60),
+    admin_users=_admin_users(),
 )
 

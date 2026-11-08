@@ -19,7 +19,8 @@ TAG_PATTERN = re.compile(r"\[表情:([^\[\]]+)\]")
 def _scan() -> dict[str, Path]:
     """递归扫描 stickers/（跟随软链接），返回 表情名称 -> 图片路径。
 
-    名称默认取文件名（不含扩展名）；不同子目录下的同名文件用「子目录/文件名」区分。
+    每个文件都注册「子目录/文件名」形式的名称；文件名全库唯一时额外注册
+    不带目录的短名作为别名。两种名称指向同一张图。
     """
     stems: dict[str, list[Path]] = {}
     for dirpath, _dirnames, filenames in os.walk(STICKER_DIR, followlinks=True):
@@ -29,20 +30,55 @@ def _scan() -> dict[str, Path]:
                 stems.setdefault(path.stem, []).append(path)
     table: dict[str, Path] = {}
     for stem, paths in stems.items():
+        for path in paths:
+            table[f"{path.parent.name}/{stem}"] = path
         if len(paths) == 1:
             table[stem] = paths[0]
-        else:
-            for path in paths:
-                table[f"{path.parent.name}/{stem}"] = path
     return table
+
+
+def _canonical_names(table: dict[str, Path]) -> list[str]:
+    """注入给模型的规范名称：短名（唯一时）或 子目录/文件名（重名时），不含别名。"""
+    return sorted(name for name in table if "/" not in name or name.rsplit("/", 1)[-1] not in table)
 
 
 def available_prompt() -> str:
     """生成注入给模型的可用表情名称列表，没有任何表情时返回空串。"""
-    names = sorted(_scan())
+    names = _canonical_names(_scan())
     if not names:
         return ""
     return "当前可用的表情包名称（仅可在 [表情:名称] 标签中使用这些名称）：" + "、".join(names)
+
+
+def list_dir(rel: str) -> str | None:
+    """列出目录下的表情文件名，rel 相对 stickers/（找不到时回退 stickers/emoji/）。
+
+    rel 为空时列出 stickers/ 下的子目录；目录不存在或越出 stickers/ 时返回 None。
+    """
+    rel_path = Path(rel)
+    if ".." in rel_path.parts or rel_path.is_absolute():
+        return None
+    base = STICKER_DIR / rel_path if rel else STICKER_DIR
+    if not base.is_dir():
+        alt = STICKER_DIR / "emoji" / rel_path
+        if rel and alt.is_dir():
+            base = alt
+        else:
+            return None
+    if not rel:
+        return "、".join(sorted(p.name for p in base.iterdir() if p.is_dir())) or "（无子目录）"
+    files = sorted(p.name for p in base.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_SUFFIXES)
+    return "  ".join(f"'{name}'" for name in files) or "（无表情文件）"
+
+
+def render(name: str) -> Message | None:
+    """按名称生成仅含该表情的消息，未找到对应图片时返回 None。"""
+    path = _scan().get(name)
+    if path is None:
+        return None
+    message = Message()
+    message.append(MessageSegment.image(path.as_uri()))
+    return message
 
 
 def parse(text: str) -> Message:

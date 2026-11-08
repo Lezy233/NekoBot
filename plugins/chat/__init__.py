@@ -3,7 +3,7 @@
 from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 
-from . import compress, llm, sticker, store
+from . import compress, debug, llm, sticker, store
 from .config import settings
 from .overrides import get_override
 from .persona import load_persona
@@ -48,6 +48,12 @@ async def handle_private_message(bot: Bot, event: MessageEvent) -> None:
     user_message = str(event.get_message()).strip()
     if not user_message:
         return
+
+    user_id_str = str(user_id)
+    if user_id_str in settings.admin_users:
+        reply = await debug.handle(user_id_str, session_key, user_message)
+        if reply is not None:
+            await matcher.finish(reply)
 
     store.append(session_key, "user", user_message)
     await compress.maybe_compress(session_key)

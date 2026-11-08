@@ -77,8 +77,13 @@ def render(name: str) -> Message | None:
     if path is None:
         return None
     message = Message()
-    message.append(MessageSegment.image(path.as_uri()))
+    message.append(_image_segment(path))
     return message
+
+
+def _image_segment(path: Path) -> MessageSegment:
+    """生成图片段。NapCat 跑在 Docker 里读不到宿主机的 file:// 路径，改用 base64 内联。"""
+    return MessageSegment.image(path.read_bytes())
 
 
 def parse(text: str) -> Message:
@@ -91,7 +96,7 @@ def parse(text: str) -> Message:
             message.append(MessageSegment.text(text[pos : match.start()]))
         path = table.get(match.group(1))
         if path is not None:
-            message.append(MessageSegment.image(path.as_uri()))
+            message.append(_image_segment(path))
         else:
             message.append(MessageSegment.text(match.group(0)))
         pos = match.end()

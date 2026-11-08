@@ -2,6 +2,7 @@
 
 from nonebot import on_message
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent
+from nonebot.adapters.onebot.v11.utils import unescape
 
 from . import compress, debug, llm, sticker, store
 from .config import settings
@@ -45,7 +46,9 @@ async def handle_private_message(bot: Bot, event: MessageEvent) -> None:
 
     user_id = getattr(event, "user_id", event.get_user_id())
     session_key = f"private:{user_id}"
-    user_message = str(event.get_message()).strip()
+    # str(Message) 会把文本转义成 CQ 码格式（[ → &#91;），这里还原后再处理，
+    # 否则用户输入的 [表情:名称] 标签无法被 sticker.parse 识别。
+    user_message = unescape(str(event.get_message())).strip()
     if not user_message:
         return
 

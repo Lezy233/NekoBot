@@ -1,0 +1,20 @@
+[
+  {
+    "id": "mood_laugh",
+    "path": "emoji/mood/😂👉.jpg",
+    "intents": ["happy"],
+    "aliases": ["笑", "逗乐了"]
+  },
+  {
+    "id": "mood_flushed",
+    "path": "emoji/mood/😳.png",
+    "intents": ["speechless", "awkward", "shy"],
+    "aliases": ["无语", "尴尬", "害羞"]
+  },
+  {
+    "id": "example_speechless",
+    "path": "emoji/example_speechless.webp",
+    "intents": ["speechless"],
+    "aliases": ["示例"]
+  }
+]

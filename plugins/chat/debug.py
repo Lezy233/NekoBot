@@ -7,10 +7,10 @@ from collections.abc import Awaitable, Callable
 
 from nonebot.adapters.onebot.v11 import Message
 
-from . import compress, sticker, store
+from . import compress, plan, sticker, store
 from .persona import load_persona
 
-Command = Callable[[str, str], Awaitable[Message | str]]
+Command = Callable[[str, str], Awaitable[Message | str | list[Message]]]
 
 _active: set[str] = set()
 _commands: dict[str, Command] = {}
@@ -30,7 +30,7 @@ def command(name: str) -> Callable[[Command], Command]:
     return register
 
 
-async def handle(user_id: str, session_key: str, text: str) -> Message | str | None:
+async def handle(user_id: str, session_key: str, text: str) -> Message | str | list[Message] | None:
     """处理管理员消息；返回 None 表示按普通聊天流程处理。
 
     <admin> / </admin> 控制模式开关；模式内识别 <指令> 格式，
@@ -69,11 +69,22 @@ async def cmd_help(session_key: str, arg: str) -> str:
 
 
 @command("echo")
-async def cmd_echo(session_key: str, arg: str) -> Message | str:
-    """<echo> 文本 — 原样返回文本，走与 AI 回复相同的表情标签解析，用于测试格式转换。"""
+async def cmd_echo(session_key: str, arg: str) -> Message | str | list[Message]:
+    """<echo> 文本 — 走与 AI 回复相同的表达计划渲染管线，并分条发送。
+
+    支持普通文本、[表情:名称] 标签（如 <echo> [表情:Pool Tom]）和 JSON 表达计划。
+    想模拟 AI 连续发送多条短句时，喂多个 text 元素的计划，例如：
+    <echo> {"messages":[{"type":"text","content":"A"},{"type":"text","content":"B"}]}
+    """
     if not arg.strip():
         return "用法：<echo> 文本"
-    return sticker.parse(arg)
+    if "[表情:" in arg:
+        chat_plan = sticker.tags_to_plan(arg)
+    else:
+        chat_plan = plan.parse_plan(arg)
+    from . import render_plan  # 延迟导入，避免与包入口循环引用
+
+    return render_plan(chat_plan)
 
 
 @command("emoji")

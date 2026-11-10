@@ -14,10 +14,45 @@ from .persona import load_persona
 
 matcher = on_message()
 
+MAX_IMAGES_PER_MESSAGE = 3
 
-def build_messages(session_key: str, current_message: str) -> list[dict[str, str]]:
-    """组装人格、会话级注入、输出协议、历史摘要、滑动历史窗口和当前用户消息。"""
-    messages: list[dict[str, str]] = [{"role": "system", "content": load_persona()}]
+
+def extract_user_content(message: Message) -> tuple[str, str | list]:
+    """拆分用户消息为 (历史规范化文本, 发给模型的 content)。
+
+    文本段合并并还原 CQ 转义后作为正文；图片段（照片与 QQ 表情包）提取 URL，
+    每条消息最多取 MAX_IMAGES_PER_MESSAGE 张，无 URL 的图片跳过。
+    含图片时 content 为 OpenAI 多模态格式的部分列表，历史文本中以 [图片] 占位；
+    不含图片时 content 就是正文字符串。
+    """
+    texts = "".join(seg.data.get("text", "") for seg in message if seg.type == "text")
+    text = unescape(texts).strip()
+    urls = [
+        seg.data["url"]
+        for seg in message
+        if seg.type == "image" and seg.data.get("url")
+    ][:MAX_IMAGES_PER_MESSAGE]
+    history_parts = ([text] if text else []) + ["[图片]"] * len(urls)
+    history_text = " ".join(history_parts)
+    if not urls:
+        return history_text, text
+    content: list[dict] = [{"type": "text", "text": text or "[图片]"}]
+    content.extend({"type": "image_url", "image_url": {"url": url}} for url in urls)
+    return history_text, content
+
+
+def build_messages(
+    session_key: str,
+    current_message: str,
+    current_content: str | list | None = None,
+) -> list[dict]:
+    """组装人格、会话级注入、输出协议、历史摘要、滑动历史窗口和当前用户消息。
+
+    current_message 是写入历史的规范化文本，用于滑动窗口去重；
+    current_content 是发给模型的当前用户消息，多模态时为 text/image_url 部分列表，
+    缺省与 current_message 相同。
+    """
+    messages: list[dict] = [{"role": "system", "content": load_persona()}]
     override = get_override(session_key)
     if override:
         messages.append({"role": "system", "content": override})
@@ -34,7 +69,7 @@ def build_messages(session_key: str, current_message: str) -> list[dict[str, str
     if history and history[-1]["role"] == "user" and history[-1]["content"] == current_message:
         history.pop()
     messages.extend({"role": item["role"], "content": item["content"]} for item in history[-settings.history_limit :])
-    messages.append({"role": "user", "content": current_message})
+    messages.append({"role": "user", "content": current_content if current_content is not None else current_message})
     return messages
 
 
@@ -81,8 +116,8 @@ async def handle_private_message(bot: Bot, event: MessageEvent) -> None:
 
     user_id = getattr(event, "user_id", event.get_user_id())
     session_key = f"private:{user_id}"
-    # str(Message) 会把文本转义成 CQ 码格式（[ → &#91;），这里还原后再处理。
-    user_message = unescape(str(event.get_message())).strip()
+    # str(Message) 会把文本转义成 CQ 码格式（[ → &#91;），extract_user_content 内部已还原。
+    user_message, llm_content = extract_user_content(event.get_message())
     if not user_message:
         return
 
@@ -98,8 +133,13 @@ async def handle_private_message(bot: Bot, event: MessageEvent) -> None:
 
     store.append(session_key, "user", user_message)
     await compress.maybe_compress(session_key)
-    messages = build_messages(session_key, user_message)
-    response = await llm.chat(messages)
+    messages = build_messages(session_key, user_message, llm_content)
+    # 含图片且配置了视觉模型时，用 vision 密钥与模型发起这一次（唯一一次）LLM 调用；
+    # 否则按纯文本走聊天模型（历史中的 [图片] 占位对模型不可见为图）。
+    if isinstance(llm_content, list) and settings.vision_api and not settings.vision_api.startswith("<"):
+        response = await llm.chat(messages, api_key=settings.vision_api, model=settings.vision_model)
+    else:
+        response = await llm.chat(messages)
 
     chat_plan = coerce_plan(response)
 

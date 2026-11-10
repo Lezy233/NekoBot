@@ -25,26 +25,36 @@ async def _request(payload: dict, api_key: str) -> str:
     return content.strip()
 
 
-async def chat(messages: list[dict[str, str]]) -> str:
-    """调用 chatAPI 并将异常转换为用户可读的提示。"""
-    if not settings.chat_api or settings.chat_api.startswith("<"):
-        return "DeepSeek API Key 尚未配置，请在 .env 中填写 CHAT_API_DEEPSEEK。"
+async def chat(
+    messages: list[dict],
+    *,
+    api_key: str | None = None,
+    model: str | None = None,
+) -> str:
+    """调用 chatAPI 并将异常转换为用户可读的提示。
+
+    api_key / model 缺省使用聊天配置；传入其他 OpenAI 兼容服务的密钥与模型
+    即可复用本函数发起多模态（vision）请求。
+    """
+    key = api_key if api_key is not None else settings.chat_api
+    if not key or key.startswith("<"):
+        return "模型 API Key 尚未配置，请在 .env 中填写相应配置。"
 
     payload = {
-        "model": settings.chat_model,
+        "model": model or settings.chat_model,
         "messages": messages,
         "temperature": settings.temperature,
     }
 
     try:
-        return await _request(payload, settings.chat_api)
+        return await _request(payload, key)
     except httpx.HTTPStatusError as exc:
         status = exc.response.status_code
-        return f"DeepSeek 请求失败（HTTP {status}），请检查 API Key、模型配置或稍后重试。"
+        return f"模型请求失败（HTTP {status}），请检查 API Key、模型配置或稍后重试。"
     except (httpx.HTTPError, TimeoutError):
-        return "DeepSeek 网络请求失败或超时，请稍后重试。"
+        return "模型网络请求失败或超时，请稍后重试。"
     except (KeyError, IndexError, TypeError, ValueError):
-        return "DeepSeek 返回格式异常，请稍后重试。"
+        return "模型返回格式异常，请稍后重试。"
 
 
 SUMMARY_SYSTEM_PROMPT = (
@@ -73,4 +83,3 @@ async def summarize(existing_summary: str, history: list[dict]) -> str:
     }
     api_key = settings.summary_api or settings.chat_api
     return await _request(payload, api_key)
-

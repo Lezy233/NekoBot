@@ -10,7 +10,7 @@ from . import llm, store
 from .config import settings
 
 FILLER_MESSAGES = {"嗯", "哦", "啊", "呃", "草", "6", "?", "？", "!", "！"}
-MEDIA_PATTERN = re.compile(r"(\[表情:[^\[\]]+\]|\[CQ:[^\]]+\])")
+MEDIA_PATTERN = re.compile(r"(\[表情:[^\[\]]+\]|\[图片\]|\[CQ:[^\]]+\])")
 
 
 def _is_meaningless(content: str) -> bool:

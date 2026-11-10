@@ -6,7 +6,7 @@
 
 ```text
 项目根/
-├── .env                        # CHAT_API_DEEPSEEK / SUMMARY_API_DEEPSEEK
+├── .env                        # CHAT_API_DEEPSEEK / SUMMARY_API_DEEPSEEK / VISION_API_DEEPSEEK
 ├── plugins/
 │   └── chat/
 │       ├── __init__.py         # 展示层：事件处理、消息组装、计划渲染与分条发送
@@ -55,6 +55,12 @@ store.append(assistant, plan_to_transcript(plan)) —— 历史只写规范化�
 ```
 
 三种表示严格分离：LLM 内部的 JSON 协议、发出去的 QQ 消息、留给模型读的历史文本，互不混用。
+
+### 多模态（图片/表情包识别）
+
+- 用户私聊中的图片（照片与 QQ 表情包）随消息一起交给视觉模型识别：含图片且配置了 `VISION_API_DEEPSEEK` 时，用 `vision_api` / `vision_model` 发起这一次（仍只有这一次）LLM 调用，content 为 OpenAI 多模态格式（`text` + `image_url`）
+- 每条消息最多取 3 张图片（按 URL），未配置视觉模型时回退到文本模型，按 `[图片]` 占位文本处理
+- 会话历史中图片以 `[图片]` 占位（不含 URL、不入 CQ 码），摘要压缩时与表情消息同样视为媒体折叠
 
 ### 表达计划（plan.py）
 

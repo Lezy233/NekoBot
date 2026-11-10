@@ -37,6 +37,8 @@ class Settings:
     chat_model: str
     summary_api: str
     summary_model: str
+    vision_api: str
+    vision_model: str
     temperature: float
     history_limit: int
     compress_threshold: int
@@ -45,9 +47,11 @@ class Settings:
 
 settings = Settings(
     chat_api=os.getenv("CHAT_API_DEEPSEEK", "").strip(),
-    chat_model=os.getenv("CHAT_MODEL_DEEPSEEK", "deepseek-flash").strip() or "deepseek-flash",
+    chat_model=os.getenv("CHAT_MODEL_DEEPSEEK", "deepseek-flash").strip(),
     summary_api=os.getenv("SUMMARY_API_DEEPSEEK", "").strip(),
     summary_model=os.getenv("SUMMARY_MODEL_DEEPSEEK", "").strip(),
+    vision_api=os.getenv("VISION_API_DEEPSEEK", "").strip(),
+    vision_model=os.getenv("VISION_MODEL_DEEPSEEK", "deepseek-flash").strip(),
     temperature=_float_env("DEEPSEEK_TEMPERATURE", 0.9),
     history_limit=_int_env("CHAT_HISTORY_LIMIT", 30),
     compress_threshold=_int_env("CHAT_COMPRESS_THRESHOLD", 60),

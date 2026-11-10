@@ -30,3 +30,8 @@ def _load() -> dict[str, str]:
 def get_override(session_key: str) -> str:
     """返回该会话需要追加注入的 system 文本，没有则返回空串。"""
     return _load().get(session_key, "")
+
+
+def has_entry(session_key: str) -> bool:
+    """该会话是否在 overrides.local.toml 中存在条目，兼作群聊白名单。"""
+    return session_key in _load()

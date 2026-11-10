@@ -57,7 +57,10 @@ PlanPart = Union[TextPart, StickerPart]
 
 @dataclass(frozen=True)
 class ChatPlan:
-    """一份有序的表达计划，parts 非空且长度不超过 MAX_PARTS。"""
+    """一份有序的表达计划。
+
+    私聊场景 parts 非空且长度不超过 MAX_PARTS；群聊场景允许空 parts（不参与话题）。
+    """
 
     parts: tuple[PlanPart, ...]
 
@@ -75,13 +78,18 @@ def _unwrap_fence(raw: str) -> str:
     return raw
 
 
-def _validate(data: object) -> ChatPlan:
+def _validate(data: object, allow_empty: bool = False) -> ChatPlan:
     if not isinstance(data, dict):
         raise PlanError("计划必须是 JSON 对象")
     messages = data.get("messages")
     if not isinstance(messages, list):
         raise PlanError("计划缺少 messages 数组")
-    if not 1 <= len(messages) <= MAX_PARTS:
+    if not messages:
+        if allow_empty:
+            # 群聊场景允许空计划，表示模型判断不参与本次话题。
+            return ChatPlan(parts=())
+        raise PlanError("messages 不能为空")
+    if len(messages) > MAX_PARTS:
         raise PlanError(f"messages 必须有 1～{MAX_PARTS} 个元素")
 
     parts: list[PlanPart] = []
@@ -108,13 +116,14 @@ def _validate(data: object) -> ChatPlan:
     return ChatPlan(parts=tuple(parts))
 
 
-def parse_plan(raw: str) -> ChatPlan:
+def parse_plan(raw: str, *, allow_empty: bool = False) -> ChatPlan:
     """把 LLM 原始输出解析为 ChatPlan。
 
     - 合法 JSON 但结构非法时抛出 PlanError（不携带原始正文）。
     - 完全不符合 JSON 且以 { 或 [ 开头的损坏响应抛出 PlanError，
       调用方不得把这类原文发给用户。
     - 其余普通自然语言按兼容处理：返回单条文本计划。
+    - allow_empty=True（群聊）时接受 {"messages":[]} 空计划，表示不发言。
     """
     text = _unwrap_fence(raw.strip())
     try:
@@ -126,7 +135,7 @@ def parse_plan(raw: str) -> ChatPlan:
         if not cleaned:
             raise PlanError("响应为空") from exc
         return ChatPlan(parts=(TextPart(content=cleaned),))
-    return _validate(data)
+    return _validate(data, allow_empty=allow_empty)
 
 
 def safe_plan(raw: str) -> ChatPlan:

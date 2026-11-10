@@ -53,7 +53,7 @@ class HandlerFlowTest(unittest.TestCase):
             mock.patch.object(chat.matcher, "finish", finish_mock),
         ):
             try:
-                asyncio.run(chat.handle_private_message(bot=bot, event=event))
+                asyncio.run(chat.handle_chat_message(bot=bot, event=event))
             except FinishedException:
                 pass  # 真实 finish 的正常终止方式
         return send_mock, finish_mock, append_mock, llm_mock

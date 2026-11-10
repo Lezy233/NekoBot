@@ -123,7 +123,7 @@ class VisionHandlerFlowTest(unittest.TestCase):
             mock.patch.object(chat.matcher, "finish", finish_mock),
         ):
             try:
-                asyncio.run(chat.handle_private_message(bot=bot, event=event))
+                asyncio.run(chat.handle_chat_message(bot=bot, event=event))
             except FinishedException:
                 pass
         return send_mock, llm_mock, append_mock

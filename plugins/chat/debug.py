@@ -152,14 +152,15 @@ async def cmd_history(session_key: str, arg: str) -> str:
 
 @command("clear")
 async def cmd_clear(session_key: str, arg: str) -> str:
-    """<clear> private=QQ号 — 删除指定私聊会话的全部聊天记录（含摘要）。
+    """<clear> private=QQ号 / public=群号 — 删除指定会话的全部聊天记录（含摘要）。
 
     发起后需回复 <YES> 或 <yes> 二次确认；其他任何输入视为取消。
     """
-    match = re.fullmatch(r"private=(\d+)", arg.strip())
+    match = re.fullmatch(r"(private|public)=(\d+)", arg.strip())
     if match is None:
-        return "用法：<clear> private=QQ号"
-    target = f"private:{match.group(1)}"
+        return "用法：<clear> private=QQ号 或 <clear> public=群号"
+    kind, target_id = match.groups()
+    target = f"{'private' if kind == 'private' else 'group'}:{target_id}"
     count = store.count_messages(target)
     has_summary = bool(store.get_summary(target))
     if count == 0 and not has_summary:

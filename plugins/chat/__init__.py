@@ -9,12 +9,20 @@ from nonebot.adapters.onebot.v11.utils import unescape
 
 from . import compress, debug, llm, plan, sticker, store
 from .config import settings
-from .overrides import get_override
+from .overrides import get_override, has_entry
 from .persona import load_persona
 
 matcher = on_message()
 
 MAX_IMAGES_PER_MESSAGE = 3
+
+GROUP_PARTICIPATION_PROMPT = (
+    "当前是群聊，用户消息以「昵称（QQ号）：正文」的格式给出发送者。"
+    "请先判断当前话题是否与你有关、你是否想参与插话："
+    '若与你无关或你不想参与，只输出 {"messages":[]}，应用会跳过本次发言，不发送任何内容；'
+    "若想参与，按输出协议输出表达计划。"
+    "不要对每条群消息都发言，没兴趣或插不上话时保持沉默。"
+)
 
 
 def extract_user_content(message: Message) -> tuple[str, str | list]:
@@ -58,6 +66,9 @@ def build_messages(
         messages.append({"role": "system", "content": override})
     # 输出协议由代码统一维护，与人格分离；表情检索不再注入整库文件名。
     messages.append({"role": "system", "content": plan.output_protocol_prompt()})
+    if session_key.startswith("group:"):
+        # 群聊追加参与判断协议：允许空计划表示不发言。
+        messages.append({"role": "system", "content": GROUP_PARTICIPATION_PROMPT})
     summary = store.get_summary(session_key)
     if summary:
         messages.append({
@@ -107,22 +118,23 @@ async def send_replies(replies: list[Message]) -> None:
 
 
 @matcher.handle()
-async def handle_private_message(bot: Bot, event: MessageEvent) -> None:
-    """只处理私聊用户消息，并把回复写回会话历史。"""
-    if event.message_type != "private":
+async def handle_chat_message(bot: Bot, event: MessageEvent) -> None:
+    """处理私聊与白名单群聊消息；管理员调试指令在两种场景均可用。"""
+    if event.message_type not in ("private", "group"):
         return
     if str(event.get_user_id()) == str(bot.self_id):
         return
 
+    is_group = event.message_type == "group"
     user_id = getattr(event, "user_id", event.get_user_id())
-    session_key = f"private:{user_id}"
-    # str(Message) 会把文本转义成 CQ 码格式（[ → &#91;），extract_user_content 内部已还原。
+    session_key = f"group:{event.group_id}" if is_group else f"private:{user_id}"
     user_message, llm_content = extract_user_content(event.get_message())
     if not user_message:
         return
 
     user_id_str = str(user_id)
     if user_id_str in settings.admin_users:
+        # 管理员调试不限对话场景，也不受群聊白名单限制。
         reply = await debug.handle(user_id_str, session_key, user_message)
         if reply is not None:
             # Message 是 list 子类，必须先排除，否则单条消息会被当成多条拆开发送。
@@ -130,6 +142,21 @@ async def handle_private_message(bot: Bot, event: MessageEvent) -> None:
                 await send_replies(reply)
                 return
             await matcher.finish(reply)
+
+    # 群聊白名单：只与 overrides.local.toml 中存在条目的群对话；私聊维持原行为。
+    if is_group and not has_entry(session_key):
+        return
+
+    # 群聊消息带发送者前缀入库与入参，便于模型区分不同群成员。
+    if is_group:
+        sender = getattr(event, "sender", None)
+        nickname = getattr(sender, "card", "") or getattr(sender, "nickname", "") or user_id_str
+        prefix = f"{nickname}（{user_id_str}）："
+        user_message = prefix + user_message
+        if isinstance(llm_content, list):
+            llm_content = [{"type": "text", "text": prefix + llm_content[0]["text"]}, *llm_content[1:]]
+        else:
+            llm_content = prefix + llm_content
 
     store.append(session_key, "user", user_message)
     await compress.maybe_compress(session_key)
@@ -141,7 +168,17 @@ async def handle_private_message(bot: Bot, event: MessageEvent) -> None:
     else:
         response = await llm.chat(messages)
 
-    chat_plan = coerce_plan(response)
+    if is_group:
+        try:
+            chat_plan = plan.parse_plan(response, allow_empty=True)
+        except plan.PlanError as exc:
+            # 群聊里损坏的协议输出直接跳过，不用兜底文本打扰群成员。
+            logger.warning(f"群聊表达计划无法解析（{exc}），本次不发言")
+            return
+        if not chat_plan.parts:
+            return  # 模型判断话题无关或不想参与
+    else:
+        chat_plan = coerce_plan(response)
 
     # 历史写入规范化文本（plan_to_transcript），严禁写入原始 JSON。
     store.append(session_key, "assistant", plan.plan_to_transcript(chat_plan))

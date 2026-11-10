@@ -96,6 +96,18 @@ class ClearCommandTest(unittest.TestCase):
         self.assertIn("没有聊天记录", reply)
         self.assertNotIn(ADMIN_SESSION, debug._pending_clear)
 
+    def test_public_target_deletes_group_history(self):
+        clear_mock = mock.Mock()
+        with mock.patch.object(debug.store, "count_messages", return_value=5), \
+             mock.patch.object(debug.store, "get_summary", return_value=""), \
+             mock.patch.object(debug.store, "clear_history", clear_mock):
+            prompt = self._run("<clear> public=123")
+            self.assertIn("group:123", prompt)
+            reply = self._run("<YES>")
+        clear_mock.assert_called_once_with("group:123")
+        self.assertIn("已删除", reply)
+        self.assertIn("5", reply)
+
     def test_exit_admin_cancels_pending(self):
         with mock.patch.object(debug.store, "count_messages", return_value=3), \
              mock.patch.object(debug.store, "get_summary", return_value=""):

@@ -100,6 +100,7 @@ LLM 不直接输出 QQ 正文，而是输出 JSON 表达计划：
 - `<echo> 文本` — 走与 AI 回复相同的表达计划渲染管线并分条发送；支持 `[表情:名称]` 标签、普通文本和 JSON 表达计划。模拟 AI 连发多条短句：`<echo> {"messages":[{"type":"text","content":"A"},{"type":"text","content":"B"},{"type":"text","content":"C"}]}`
 - `<emoji> "名称"` / `<emoji> ls [目录]` — 按文件名取图 / 列目录
 - `<compact>` — 手动触发上下文压缩
+- `<clear> private=QQ号` — 删除指定私聊会话的全部聊天记录（含摘要），需 `<YES>`/`<yes>` 二次确认，其他输入视为取消
 - `<persona>` / `<history>` — 查看人格加载与历史条数
 
 ## 测试

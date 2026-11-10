@@ -66,6 +66,13 @@ def get_recent(session_key: str, limit: int) -> list[dict[str, str]]:
     return [{"role": row["role"], "content": row["content"]} for row in rows]
 
 
+def clear_history(session_key: str) -> None:
+    """删除指定会话的全部聊天记录与摘要。"""
+    with _connect() as connection:
+        connection.execute("DELETE FROM messages WHERE session_key = ?", (session_key,))
+        connection.execute("DELETE FROM summaries WHERE session_key = ?", (session_key,))
+
+
 def count_messages(session_key: str) -> int:
     with _connect() as connection:
         row = connection.execute(

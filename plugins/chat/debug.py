@@ -19,6 +19,10 @@ COMMAND_PATTERN = re.compile(r"^<([a-zA-Z]+)>\s*(.*)$", re.DOTALL)
 ENTER_MODE = "<admin>"
 EXIT_MODE = "</admin>"
 
+# 待二次确认的删除请求：管理员 session_key -> 目标 session_key。
+_pending_clear: dict[str, str] = {}
+CONFIRM_WORDS = {"<YES>", "<yes>"}
+
 
 def command(name: str) -> Callable[[Command], Command]:
     """注册调试指令，name 为尖括号内的英文指令名。"""
@@ -45,9 +49,20 @@ async def handle(user_id: str, session_key: str, text: str) -> Message | str | l
         if user_id not in _active:
             return "当前不在管理员模式"
         _active.discard(user_id)
+        _pending_clear.pop(session_key, None)  # 退出管理员模式作废待确认的删除请求
         return "已退出管理员模式"
     if user_id not in _active:
         return None
+
+    # 二次确认：<YES>/<yes> 执行待确认的删除；输入其他指令则作废待确认请求并执行新指令；
+    # 其他普通输入视为取消，按正常聊天流程继续处理。
+    pending = _pending_clear.pop(session_key, None)
+    if pending is not None and text in CONFIRM_WORDS:
+        before = store.count_messages(pending)
+        had_summary = bool(store.get_summary(pending))
+        store.clear_history(pending)
+        result = f"已删除 {pending} 的 {before} 条聊天记录"
+        return result + "及摘要" if had_summary else result
 
     match = COMMAND_PATTERN.match(text)
     if match is None:
@@ -133,3 +148,23 @@ async def cmd_history(session_key: str, arg: str) -> str:
     summary = store.get_summary(session_key)
     state = f"已有摘要（{len(summary)} 字）" if summary else "无摘要"
     return f"当前会话共 {store.count_messages(session_key)} 条历史，{state}"
+
+
+@command("clear")
+async def cmd_clear(session_key: str, arg: str) -> str:
+    """<clear> private=QQ号 — 删除指定私聊会话的全部聊天记录（含摘要）。
+
+    发起后需回复 <YES> 或 <yes> 二次确认；其他任何输入视为取消。
+    """
+    match = re.fullmatch(r"private=(\d+)", arg.strip())
+    if match is None:
+        return "用法：<clear> private=QQ号"
+    target = f"private:{match.group(1)}"
+    count = store.count_messages(target)
+    has_summary = bool(store.get_summary(target))
+    if count == 0 and not has_summary:
+        return f"{target} 没有聊天记录，无需删除"
+    _pending_clear[session_key] = target
+    summary_state = "（含已有摘要）" if has_summary else ""
+    return (f"将删除 {target} 的全部 {count} 条聊天记录{summary_state}，"
+            "回复 <YES> 确认，其他任何输入视为取消")

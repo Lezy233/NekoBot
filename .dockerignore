@@ -1,0 +1,13 @@
+.git
+.venv
+__pycache__
+*.py[cod]
+.env
+.env.*
+data
+tests
+.agents
+.aws
+.codex
+persona/*.local.*
+stickers/emoji

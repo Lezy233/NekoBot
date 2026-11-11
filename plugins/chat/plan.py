@@ -171,6 +171,8 @@ def output_protocol_prompt() -> str:
         "- text 元素的 content 必须是非空字符串。\n"
         "- sticker 元素的 intent 只能是：" + intents + "。\n"
         "- 每次回复最多使用一个 sticker。\n"
+        "- 情绪明显的场景优先用 sticker 表达：吐槽、得意、无语、发火、害羞、安慰时随手带一张，"
+        "熟人闲聊时多数回复都可以带一个 sticker，它是你的日常表达方式而不是稀有装饰。\n"
         "- sticker 只写 intent，不要写文件名、路径、URL 或 CQ 码；应用层会检索真实图片，"
         "找不到时会丢弃该表情。\n"
         "- 空行没有分条语义；需要分条时拆成多个 messages 元素。\n"

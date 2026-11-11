@@ -92,6 +92,7 @@ LLM 不直接输出 QQ 正文，而是输出 JSON 表达计划：
 - 索引按 catalog mtime 缓存并自动失效；同一 intent 多张候选时随机选一张
 - `resolve_sticker(intent)`：未知 intent / 无候选 / 读取失败一律返回 None，主流程丢弃该表情保留文本
 - 保留 `render()`（按文件名取图）与 `list_dir()`（列目录）供 `<emoji>` 调试指令使用
+- catalog 为全部 6 个 intent 配了真实候选（同 intent 多张时随机选一张），避免模型选到无图 intent 被静默丢弃
 
 ### 消息组装与历史（build_messages / store / compress）
 

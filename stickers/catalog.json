@@ -2,19 +2,207 @@
   {
     "id": "mood_laugh",
     "path": "emoji/mood/😂👉.jpg",
-    "intents": ["happy"],
-    "aliases": ["笑", "逗乐了"]
+    "intents": [
+      "happy"
+    ],
+    "aliases": [
+      "笑",
+      "逗乐了"
+    ]
+  },
+  {
+    "id": "jerry_laugh",
+    "path": "emoji/Tom and Jerry/Jerry Laugh.jpg",
+    "intents": [
+      "happy"
+    ],
+    "aliases": [
+      "笑"
+    ]
+  },
+  {
+    "id": "jerry_amused",
+    "path": "emoji/Tom and Jerry/你把大家伙逗乐了.gif",
+    "intents": [
+      "happy"
+    ],
+    "aliases": [
+      "逗乐了"
+    ]
+  },
+  {
+    "id": "maomao_excited",
+    "path": "emoji/猫猫虫/兴奋.gif",
+    "intents": [
+      "happy"
+    ],
+    "aliases": [
+      "兴奋"
+    ]
+  },
+  {
+    "id": "maomao_super_excited",
+    "path": "emoji/猫猫虫/超级兴奋.gif",
+    "intents": [
+      "happy"
+    ],
+    "aliases": [
+      "兴奋"
+    ]
   },
   {
     "id": "mood_flushed",
     "path": "emoji/mood/😳.png",
-    "intents": ["speechless", "awkward", "shy"],
-    "aliases": ["无语", "尴尬", "害羞"]
+    "intents": [
+      "speechless",
+      "awkward",
+      "shy"
+    ],
+    "aliases": [
+      "无语",
+      "尴尬",
+      "害羞"
+    ]
+  },
+  {
+    "id": "mood_choked",
+    "path": "emoji/mood/掐脖.jpg",
+    "intents": [
+      "speechless"
+    ],
+    "aliases": [
+      "掐脖",
+      "无语"
+    ]
+  },
+  {
+    "id": "maomao_faint",
+    "path": "emoji/猫猫虫/不省人事.gif",
+    "intents": [
+      "speechless"
+    ],
+    "aliases": [
+      "晕倒"
+    ]
+  },
+  {
+    "id": "mygo_angry",
+    "path": "emoji/MyGO/你他妈有病吧！让我看这种东西.png",
+    "intents": [
+      "angry"
+    ],
+    "aliases": [
+      "愤怒",
+      "骂人"
+    ]
+  },
+  {
+    "id": "maomao_angry",
+    "path": "emoji/猫猫虫/生气.gif",
+    "intents": [
+      "angry"
+    ],
+    "aliases": [
+      "生气"
+    ]
+  },
+  {
+    "id": "mugui_hiss",
+    "path": "emoji/木柜子/哈气.jpg",
+    "intents": [
+      "angry"
+    ],
+    "aliases": [
+      "哈气",
+      "发火"
+    ]
+  },
+  {
+    "id": "tomori_shy",
+    "path": "emoji/MyGO/偷摸零.jpg",
+    "intents": [
+      "shy"
+    ],
+    "aliases": [
+      "害羞",
+      "脸红"
+    ]
+  },
+  {
+    "id": "sad_cat",
+    "path": "emoji/mood/😫.jpg",
+    "intents": [
+      "comfort"
+    ],
+    "aliases": [
+      "难过",
+      "委屈"
+    ]
+  },
+  {
+    "id": "maomao_cry",
+    "path": "emoji/猫猫虫/哭.gif",
+    "intents": [
+      "comfort"
+    ],
+    "aliases": [
+      "哭",
+      "难过"
+    ]
+  },
+  {
+    "id": "doraemon_sad",
+    "path": "emoji/ドラえもん/脸上装作毫不在乎我明白他心里有多伤心.jpg",
+    "intents": [
+      "comfort"
+    ],
+    "aliases": [
+      "伤心",
+      "心疼"
+    ]
+  },
+  {
+    "id": "doraemon_smirk",
+    "path": "emoji/ドラえもん/🙂.jpeg",
+    "intents": [
+      "awkward",
+      "speechless"
+    ],
+    "aliases": [
+      "假笑"
+    ]
+  },
+  {
+    "id": "worker_monkey",
+    "path": "emoji/上班/花香蕉的钱只能请到猴子.jpg",
+    "intents": [
+      "awkward",
+      "speechless"
+    ],
+    "aliases": [
+      "打工人",
+      "无语"
+    ]
+  },
+  {
+    "id": "maomao_sweat",
+    "path": "emoji/猫猫虫/冷汗.gif",
+    "intents": [
+      "awkward"
+    ],
+    "aliases": [
+      "冷汗",
+      "尴尬"
+    ]
   },
   {
     "id": "example_speechless",
     "path": "emoji/example_speechless.webp",
-    "intents": ["speechless"],
-    "aliases": ["示例"]
+    "intents": [
+      "speechless"
+    ],
+    "aliases": [
+      "示例"
+    ]
   }
 ]

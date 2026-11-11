@@ -134,3 +134,4 @@ python -m unittest discover -s tests -v
 
 - [NoneBot文档](https://nonebot.dev/)
 - [NapCat文档](https://napcat.napneko.icu/)
+- Prompt参考: [玖帕喵](https://jiupamiao.asia/market)

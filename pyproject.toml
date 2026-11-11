@@ -16,6 +16,9 @@ dependencies = [
 plugin_dirs = ["plugins"]
 builtin_plugins = ["echo"]
 
+[tool.poetry]
+package-mode = false
+
 [tool.nonebot.adapters]
 nonebot-adapter-onebot = [
     { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" }

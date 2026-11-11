@@ -128,7 +128,85 @@ python -m unittest discover -s tests -v
 
 ## 如何开始
 
-在项目根目录运行 `nb run`。
+### 本机开发
+
+本机开发使用 `.env` 保存配置。先在项目根目录新建 `.env`，至少填写：
+
+```dotenv
+CHAT_API_DEEPSEEK=<你的 DeepSeek API Key>
+CHAT_ADMIN_USERS=<你的 QQ 号>
+```
+
+`SUMMARY_API_DEEPSEEK` 和 `VISION_API_DEEPSEEK` 可按需配置；摘要模型缺省时复用聊天配置，未配置视觉模型时图片按 `[图片]` 占位文本处理。
+
+安装依赖并启动：
+
+```bash
+poetry install --only main --no-root
+poetry run python bot.py
+```
+
+Poetry 默认把虚拟环境放在 `~/.cache/pypoetry/virtualenvs/`，项目目录中没有 `.venv` 不代表未使用虚拟环境。可用 `poetry env info` 查看实际环境。
+
+### Docker 部署
+
+Docker 部署使用 `.env.prod`，与供本机开发使用的 `.env` 区分。先新建 `.env.prod`：
+
+```dotenv
+CHAT_API_DEEPSEEK=<你的 DeepSeek API Key>
+CHAT_ADMIN_USERS=<你的 QQ 号>
+SUMMARY_API_DEEPSEEK=
+VISION_API_DEEPSEEK=
+```
+
+然后初始化人格、会话覆盖配置和数据目录：
+
+```bash
+cp persona/default.example.md persona/default.local.md
+cp persona/overrides.example.toml persona/overrides.local.toml
+mkdir -p data
+```
+
+其中第二次复制是可选的；不需要私聊/群聊专属注入或群聊白名单时，可以不创建 `overrides.local.toml`。创建后请删除示例条目，再填写自己的配置。
+
+构建并启动：
+
+```bash
+LOCAL_UID=$(id -u) LOCAL_GID=$(id -g) docker compose up -d --build
+```
+
+`LOCAL_UID` 和 `LOCAL_GID` 让容器用户与宿主机当前用户匹配，避免挂载的 `data/` 出现写入权限问题；当前用户的 UID/GID 都是 1000 时，也可以直接运行 `docker compose up -d --build`。
+
+查看状态和日志：
+
+```bash
+docker compose ps
+docker compose logs -f
+```
+
+按 `Ctrl+C` 只会退出日志查看，不会停止机器人。修改 `.env.prod` 或 `compose.yaml` 后执行 `docker compose up -d` 重新创建容器；修改 Python 代码或依赖后执行 `docker compose up -d --build` 重新构建。仅执行 `docker compose restart` 不会重新加载 `env_file`。
+
+### 连接 NapCat
+
+NapCat 是独立的 QQ 协议端，不包含在本仓库中。安装并登录 NapCat 后，创建 OneBot V11 反向 WebSocket 客户端：
+
+- NapCat 直接运行在宿主机：连接 `ws://127.0.0.1:8080/onebot/v11/ws`。
+- NapCat 也运行在 Docker 中：需先接入本项目的 Compose 网络，再连接 `ws://nekobot:8080/onebot/v11/ws`；此时 `127.0.0.1` 指向 NapCat 容器自身，不能用于连接 NekoBot。
+
+如果配置了 `ONEBOT_ACCESS_TOKEN`，NapCat 与 NekoBot 两边必须一致。8080 端口默认只映射到宿主机回环地址，不要在没有访问控制的情况下暴露到公网。
+
+### 数据、表情与迁移
+
+- `data/chat.db` 保存会话历史，通过 `./data:/app/data` 挂载到宿主机；重建或重启容器不会清空它，备份时应保存该文件。
+- `persona/` 以只读方式挂载。新用户应先从示例复制本地人格；`persona/overrides.local.toml` 才是代码实际读取的覆盖配置文件。
+- `stickers/` 以只读方式挂载。`stickers/catalog.json` 会进入仓库，但 `stickers/emoji/` 中的实际图片被 Git 忽略；迁移到新机器时需单独准备图片，否则文字聊天仍可使用，但表情检索会失败。
+- 表情通过 Base64 内联发送，不需要与 NapCat 共享图片目录。
+
+### 隐私与公开仓库
+
+`.gitignore` 已排除 `.env`、`.env.*`、`data/`、`persona/*.local.*` 和 `stickers/emoji/`，正常执行 `git add` 不会加入 API Key、聊天记录、本地人格或表情图片。不要使用 `git add -f` 强制加入这些文件；公开仓库前应使用 `git status` 和 `git diff --cached` 检查暂存内容。
+
+`env_file` 只在创建容器时注入环境变量，不会把 `.env.prod` 复制进镜像。但宿主机 root/docker 用户以及容器内程序仍能读取这些值；不要公开分享未经脱敏的 `docker inspect`、`docker compose config` 或 `docker compose exec nekobot env` 输出。若密钥已经泄露，应立即在对应平台吊销并更换。
 
 ## 参考文档
 
